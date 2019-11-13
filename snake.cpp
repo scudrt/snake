@@ -82,14 +82,6 @@ void Snake::init(){
     painter->init();
 }
 
-void Snake::update(){
-    //get input, judge and delay every frame
-    DIRECTION dir = getInputDirection();
-    move(dir)
-    painter->update();
-    frameDelay();
-}
-
 void Snake::showGameOver(){
     ;//to be done
 }
@@ -113,22 +105,21 @@ DIRECTION Snake::getInputDirection(){
     }
 }
 
+void Snake::update(){
+    //get input, judge and delay every frame
+    move(getInputDirection())
+    painter->update();
+    frameDelay();
+}
+
 void Snake::move(DIRECTION inputDir){
-    if (inputDir == NO_DIRECTION){
-        return;
-    }else if (inputDir == UP || inputDir == DOWN){
-        if (currentDirection == LEFT || currentDirection == RIGHT){
-            currentDirection = inputDir;
-        }
-    }else if (inputDir == LEFT || inputDir == RIGHT){
-        if (currentDirection == UP || currentDirection == DOWN){
-            currentDirection = inputDir;
-        }
-    }
+    //needs snake's head  pointer
+    //...
 }
 
 bool Snake::judge(){
     //calculate and return if game is over
+    //...
     return true;
 }
 

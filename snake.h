@@ -30,7 +30,7 @@ private:
     void cleanUp();
 
     void showGameOver();
-    void snakeTurn(DIRECTION);
+    void move(DIRECTION);
 
     void frameDelay();
     void setInterval(int interval = 500);
