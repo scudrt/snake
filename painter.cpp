@@ -2,16 +2,16 @@
 #include "painter.h"
 #include "graphics.h"
 
+Painter::Painter(){
+    ;
+}
+
+Painter::~Painter(){
+    ;
+}
+
 void Painter::bindSnake(const Snake* snake){
     this->bindingSnake = snake;
-}
-
-void Painter::init()const{
-    ;
-}
-
-void Painter::cleanUp(){
-    ;
 }
 
 void Painter::update(){

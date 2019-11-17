@@ -12,9 +12,16 @@ enum BLOCK_TYPE{
 };
 
 struct Position{
-    Position();
+    Position(int, int);
     int x, y;
 };
+
+struct SnakeBody{
+    SnakeBody(int, int);
+
+    int x, y;
+    SnakeBody* last, next;
+}
 
 class Snake{
 public:
@@ -25,18 +32,16 @@ public:
 
     friend class Painter;
 private:
-    void init();
+    void gameOver();
+    void turnTo(DIRECTION);
+    void move();
+    void makeNewFood();
     void update();
-    void cleanUp();
 
-    void showGameOver();
-    void move(DIRECTION);
-
-    void frameDelay();
+    void delay();
     void setInterval(int interval = 500);
 
     bool judge();
-    bool wantContinue();
 
     DIRECTION getInputDirection();
 
@@ -44,7 +49,11 @@ private:
     int frameInterval;
 
     BLOCK_TYPE** block;
-    DIRECTION currentDirection;
+
+    DIRECTION toward;
+
+    SnakeBody *snakeHead;
+
     Painter *painter;
 };
 

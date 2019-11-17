@@ -4,9 +4,9 @@
 class Snake;
 class Painter{
 public:
-    void init()const;
+    Painter();
+    ~Painter();
     void bindSnake(const Snake*);
-    void cleanUp();
     void update();
 private:
     const Snake* bindingSnake;
