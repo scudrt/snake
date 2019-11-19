@@ -2,6 +2,7 @@
 #define _SNAKE_H_
 
 #include "painter.h"
+class Painter;
 
 enum DIRECTION{
     NO_DIRECTION, UP, DOWN, LEFT, RIGHT
@@ -20,8 +21,8 @@ struct SnakeBody{
     SnakeBody(int, int);
 
     int x, y;
-    SnakeBody* last, next;
-}
+    SnakeBody *last, *next;
+};
 
 class Snake{
 public:
@@ -39,7 +40,7 @@ private:
     void update();
 
     void delay();
-    void setInterval(int interval = 500);
+    void setDelayInterval(int);
 
     bool judge();
 
@@ -47,12 +48,14 @@ private:
 
     const int BLOCK_SIZE;
     int frameInterval;
+    int snakeLength;
 
     BLOCK_TYPE** block;
 
     DIRECTION toward;
 
     SnakeBody *snakeHead;
+    Position food;
 
     Painter *painter;
 };

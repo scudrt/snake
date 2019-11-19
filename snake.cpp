@@ -5,97 +5,79 @@
 #include <cstdlib>
 #include <algorithm>
 #include <windows.h>
+#include <fstream>
 
 Position::Position(int _x = 0, int _y = 0):x(_x), y(_y){}
 
-SnakeBody::SnakeBody(int _x=0, int _y=0):x(_x), y(_y), last(nullptr), next(nullptr){}
+SnakeBody::SnakeBody(int _x, int _y):x(_x), y(_y), last(nullptr), next(nullptr){}
 
-Snake::Snake():BLOCK_SIZE(10){
-    setInterval(60);
+Snake::Snake():BLOCK_SIZE(40){
+    setDelayInterval(100);
     srand(time(0));
 
-    //memory allocation
-    block[0] = new BLOCK_TYPE[BLOCK_SIZE * BLOCK_SIZE];
+    //new a 2D array
+    this->block = new BLOCK_TYPE* [BLOCK_SIZE];
+    this->block[0] = new BLOCK_TYPE[BLOCK_SIZE * BLOCK_SIZE];
     for (int i=1;i<BLOCK_SIZE;++i){
-        block[i] = block[i * BLOCK_SIZE];
+        this->block[i] = this->block[i-1] + BLOCK_SIZE;
     }
-    memset(block, 0, sizeof(BLOCK_TYPE) * BLOCK_SIZE*BLOCK_SIZE);
+    memset(this->block[0], 0, sizeof(BLOCK_TYPE) * BLOCK_SIZE*BLOCK_SIZE);
 
-    //put snake in the middle of map
+    //generate snake in the map
+    this->snakeLength = 3;
     int mid = BLOCK_SIZE / 2;
-    SnakeBody *now;
-    block[mid][mid+1] = HEAD;
+    this->block[mid][mid+1] = BLOCK_TYPE::HEAD;
     this->snakeHead = new SnakeBody(mid, mid+1);
-
     block[mid][mid] = BODY;
     SnakeBody *body = new SnakeBody(mid, mid);
     this->snakeHead->next = body;
     body->last = this->snakeHead;
-
+    
     block[mid][mid-1] = TAIL;
     SnakeBody *tail = new SnakeBody(mid, mid-1);
     body->next = tail;
     tail->last = body;
 
     //set initial direction
-    toward = DIRECTION::RIGHT;
+    this->toward = DIRECTION::RIGHT;
 
     //generate foods
-    int x, y;
-    do{
-        x = rand() % BLOCK_SIZE;
-        y = rand() % BLOCK_SIZE;
-    }while (block[x][y] != EMPTY_BLOCK);
-    block[x][y] = FOOD;
+    this->makeNewFood();
 
     //generate walls(to be done)
 
-    //initialise painter
-    this->painter = new Painter;
-    painter->bindSnake(this);
+    //initialize painter
+    this->painter = new Painter(this);
 }
 Snake::~Snake(){
-    //remember to release memory of SnakeBody pointer
-    if (this->block != nullptr){
-        for (int i=0;i<BLOCK_SIZE;++i){
-            delete this->block[i];
-        }
-        this->block = nullptr;
-    }
-    if (this->painter != nullptr){
-        delete this->painter;
-        this->painter = nullptr;
+    delete[] this->block[0];
+    delete[] this->block;
+    delete this->painter;
+    SnakeBody *temp;
+    while (this->snakeHead != nullptr){
+        temp = this->snakeHead->next;
+        delete this->snakeHead;
+        this->snakeHead = temp;
     }
 }
 
-void Snake::setInterval(int interval){ //ms
-    if (interval <= 10){ //too short
-        return;
-    }
+void Snake::setDelayInterval(int interval){ //ms
     this->frameInterval = interval;
 }
 
 void Snake::delay(){
-    static int lastTime = clock();
-    int delta = clock() - lastTime;
-    if (delta < frameInterval){
-        delay_ms(frameInterval - delta);
-    }
-    lastTime = clock();
-}
-
-void Snake::init(){
+    delay_ms(this->frameInterval);
 }
 
 void Snake::gameOver(){
-    ;//to be done
+    this->painter->gameOver();
 }
 
 DIRECTION Snake::getInputDirection(){
     if (kbmsg()){ //keyboard message appears
         key_msg k = getkey();
         if (k.key == VK_UP){
-            return DIRECTION::DIRECTION::UP;
+            return DIRECTION::UP;
         }else if (k.key == VK_DOWN){
             return DIRECTION::DOWN;
         }else if (k.key == VK_LEFT){
@@ -112,22 +94,30 @@ DIRECTION Snake::getInputDirection(){
 
 void Snake::update(){
     //get input, judge and delay every frame
-    turnTo(getInputDirection());
-    move();
-    painter->update();
+    this->turnTo(this->getInputDirection());
+    this->move();
+    this->painter->update();
     this->delay();
 }
 
 void Snake::turnTo(DIRECTION dir){
-    if (dir != NO_DIRECTION){
+    if (dir == DIRECTION::NO_DIRECTION){
+        return;
+    }else if (dir == DIRECTION::UP && this->toward != DIRECTION::DOWN){
         this->toward = dir;
-    }else{}
+    }else if (dir == DIRECTION::DOWN && this->toward != DIRECTION::UP){
+        this->toward = dir;
+    }else if (dir == DIRECTION::LEFT && this->toward != DIRECTION::RIGHT){
+        this->toward = dir;
+    }else if (dir == DIRECTION::RIGHT && this->toward != DIRECTION::LEFT){
+        this->toward = dir;
+    }
 }
 
 void Snake::move(){
     //move or eat-grow
-    int posx = this->head->x, posy = this->head->y;
-
+    int posx = this->snakeHead->x,
+        posy = this->snakeHead->y;
     //get next position
     if (this->toward == DIRECTION::LEFT){
         --posy;
@@ -135,7 +125,7 @@ void Snake::move(){
         ++posy;
     }else if (this->toward == DIRECTION::DOWN){
         ++posx;
-    }else if (this->toward == DIRECTION::UP{
+    }else if (this->toward == DIRECTION::UP){
         --posx;
     }
     if (posx >= BLOCK_SIZE || posx < 0){
@@ -146,36 +136,47 @@ void Snake::move(){
 
     BLOCK_TYPE nextBlock = this->block[posx][posy];
     if (nextBlock == BLOCK_TYPE::FOOD){ //grow up
-        ;
+        this->snakeHead->last = new SnakeBody(posx, posy);
+        this->snakeHead->last->next = this->snakeHead;
+        this->block[posx][posy] = BLOCK_TYPE::HEAD;
+        this->block[this->snakeHead->x][this->snakeHead->y] = BLOCK_TYPE::BODY;
+        this->snakeHead = this->snakeHead->last;
         this->makeNewFood();
+        return;
     }else if (nextBlock == BLOCK_TYPE::BODY){ //game over
         this->snakeHead->x = posx;
         this->snakeHead->y = posy;
         return;
     }
 
-    //move all segments of snake
-    SnakeBody *now = this->head;
-    while (now->next != nullptr){ //while now is not tail
-        swap(now->x, posx);
-        swap(now->y, posy);
+    //nothing forward
+    SnakeBody *now = this->snakeHead;
+    while (now != nullptr){ //while now is not tail
+        std::swap(block[now->x][now->y], block[posx][posy]);
+        std::swap(now->x, posx);
+        std::swap(now->y, posy);
         now = now->next;
     }
 }
 
 void Snake::makeNewFood(){
-    ;
+    int posx, posy;
+    do{
+        posx = rand() % BLOCK_SIZE;
+        posy = rand() % BLOCK_SIZE;
+    }while (block[posx][posy] != BLOCK_TYPE::EMPTY_BLOCK);
+    this->block[posx][posy] = BLOCK_TYPE::FOOD;
+    this->food = Position(posx, posy);
 }
 
 bool Snake::judge(){
     int x = this->snakeHead->x, y = this->snakeHead->y;
-    return (this->block[x][y] == BLOCK_TYPE::BODY);
+    return (this->block[x][y] != BLOCK_TYPE::BODY);
 }
 
 void Snake::play(){
-    init();
-    while (judge() == true){
-        update();
+    while (this->judge() == true){
+        this->update();
     }
-    gameOver();
+    this->gameOver();
 }
